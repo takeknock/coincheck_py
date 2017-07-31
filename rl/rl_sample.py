@@ -110,7 +110,7 @@ class MonteCarloPolicyIteration:
             self.actions = self.init_matrix() # 各episodeの、各stepごとの行動
             self.rewards = self.init_matrix() # 各episodeの、各stepごとの報酬
             self.drewards = self.init_matrix() # 各episodeの、各stepごとの割引報酬？？
-            self.results = self.init_results()
+            self.results = self.init_results() # ゲームの結果報酬 results.len <=> episodes
 
             for episode_index in range(self.episodes):
                 state3 = self.init_state3()
@@ -153,8 +153,21 @@ class MonteCarloPolicyIteration:
         return np.zeros(self.n_actions)
 
     def improve_policy(self, policy, state):
-        # if self.options["pmode"]==0:
-        return 0
+        if self.options["pmode"]==0:
+            q = self.Q[state]
+            v = max(q)
+            a = np.where(q==v)[0][0]
+            policy[a] = 1
+        elif self.options["pmode"]==1:
+            q = self.Q[state]
+            v = max(q)
+            a = np.where(v==q)[0][0]
+            policy = np.ones(self.n_actions) * self.options["epsilon"] / self.n_actions
+            policy[a] = 1 - self.options["epsilon"] + self.options["epsilon"] / self.n_actions
+        elif self.options["pmode"] == 2:
+            policy = np.exp(self.Q[state] / self.options["tau"]) / sum(np.exp(self.Q[state] / self.options["tau"]))
+
+        return policy
 
     def action_train(self, policy, step_index, state3):
         return 0,0,0,0
