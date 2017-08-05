@@ -174,8 +174,8 @@ class MonteCarloPolicyIteration:
         npc_action = self.select_npc_action(policy, state3)
         # 2は学習プレイヤーの行動した印
         state3[npc_action] = 2
-        is_finished = self.check_game(state3)
-
+        checked_result = self.judge(state3)
+        reward = self.calculate_reward(checked_result)
 
         return 0,0,0,0
 
@@ -215,6 +215,41 @@ class MonteCarloPolicyIteration:
                     break
         # 第1step なら 0のマスに印をつける
         return a
+
+    def judge(self, state3):
+        fin_positions = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]]
+        # fin_positionに含まれるマスの組のうち、全てが1もしくは2のものが、state3に含まれていた場合、
+        # ゲーム終了
+        #for position in fin_positions:
+        #    for i in position:
+        for i in range(len(fin_positions)):
+            state_i = state3[fin_positions[i]]
+            val_npc = sum(state_i == 1)
+            val_enemy = sum(state_i == 2)
+            if val_npc == 3:
+                # win player
+                return 1
+            if val_enemy == 3:
+                # win enemy
+                return 2
+        is_actioned_all_cell = sum(state3 == 0) == 0
+        if (is_actioned_all_cell):
+            # tie
+            return 3
+        # game is continued
+        return 0
+
+    def calculate_reward(self, finished_state):
+        # assumption: finished_state is contained in {0, 1, 2, 3} space
+        if finished_state == 1:
+            return 10
+        if finished_state == 2:
+            return -10
+        if finished_state == 3:
+            return None
+        if finished_state == 0:
+            return 0
+
 
 
 
