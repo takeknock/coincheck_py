@@ -136,7 +136,6 @@ class MonteCarloPolicyIteration:
             self.Q = self.calculate_state_action_value_function()
             self.rates.append(self.calculate_win_ratio())
 
-
     def init_visits(self):
         return np.ones(self.n_states,self.n_actions)
 
@@ -169,7 +168,15 @@ class MonteCarloPolicyIteration:
 
         return policy
 
+    # play 1 game
     def action_train(self, policy, step_index, state3):
+        # assumption : training player move first
+        npc_action = self.select_npc_action(policy, state3)
+        # 2は学習プレイヤーの行動した印
+        state3[npc_action] = 2
+        is_finished = self.check_game(state3)
+
+
         return 0,0,0,0
 
     def update(self, episode_index, step_index, state, action, reward):
@@ -186,6 +193,28 @@ class MonteCarloPolicyIteration:
 
     def calculate_win_ratio(self):
         return 0.5
+
+    def select_npc_action(self, step_index, policy, state3):
+        a = None
+        if step_index == 0:
+            a = 0
+        else:
+            while 1:
+                random = np.random.rand()
+                cumulative_probability = 0
+                for a in range(self.n_actions):
+                    cumulative_probability += policy[a]
+                    if cumulative_probability > random :
+                        break
+
+                # 既に0埋めされてないか確認
+                # 0以外の場合、既に行動済み
+                # 行動済みの場合、行動を重ねられないため
+                # 別の行動が選ばれるよう、もう一回行動ガチャを回す
+                if state3[a] == 0:
+                    break
+        # 第1step なら 0のマスに印をつける
+        return a
 
 
 
