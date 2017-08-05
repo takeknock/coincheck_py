@@ -109,7 +109,7 @@ class MonteCarloPolicyIteration:
             self.states = self.init_matrix() # 盤面？
             self.actions = self.init_matrix() # 各episodeの、各stepごとの行動
             self.rewards = self.init_matrix() # 各episodeの、各stepごとの報酬
-            self.drewards = self.init_matrix() # 各episodeの、各stepごとの割引報酬？？
+            self.discounted_rewards = self.init_matrix() # 各episodeの、各stepごとの割引報酬？？
             self.results = self.init_results() # ゲームの結果報酬 results.len <=> episodes
 
             for episode_index in range(self.episodes):
