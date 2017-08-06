@@ -195,7 +195,17 @@ class MonteCarloPolicyIteration:
         return npc_action, reward, state3, checked_result
 
     def update(self, episode_index, step_index, state, action, reward):
-        pass
+        # state, action, rewardを保存
+        self.states[episode_index][step_index] = state
+        self.action[episode_index][step_index] = action
+        self.rewards[episode_index][step_index] = reward
+
+        # 出現回数の更新
+        self.visits[state][action] += 1
+
+        # 更新後のaction一覧を表示
+        print("episode : ", episode_index, "step : ", step_index)
+        print("actions : ", self.actions)
 
     def is_finished(self, fin):
         return True
