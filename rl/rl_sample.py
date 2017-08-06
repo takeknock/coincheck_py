@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import unittest
+from numpy.random import *
 
 def encode(state3):
     """
@@ -118,6 +119,9 @@ class MonteCarloPolicyIteration:
                 for step_index in range(self.steps):
                     state = encode(state3)
                     policy = self.generate_policy()
+                    # ここまでの政策反復で得たQ関数を用いて政策改善
+                    # 政策改善はあるQ関数の下では同じQ関数(評価関数)を
+                    # 用いて、政策を出力し続ける
                     policy = self.improve_policy(policy, state)
 
                     # row 44, in p.56
@@ -132,7 +136,7 @@ class MonteCarloPolicyIteration:
                         # 今ゲームの割引報酬和(各episodeの各stepごとに格納)
                         self.discounted_rewards = self.calculate_discounted_rewards(episode_index, step_index)
                         break
-
+            # 行動価値関数(評価関数)を生成(政策評価)
             self.Q = self.calculate_state_action_value_function()
             self.rates.append(self.calculate_win_ratio())
 
@@ -177,6 +181,11 @@ class MonteCarloPolicyIteration:
         checked_result = self.judge(state3)
         reward = self.calculate_reward(checked_result)
 
+        if reward is not None:
+            return npc_action, reward, state3, checked_result
+
+        enemy_action = self.select_enemy_action(step_index, state3)
+
         return 0,0,0,0
 
     def update(self, episode_index, step_index, state, action, reward):
@@ -194,6 +203,7 @@ class MonteCarloPolicyIteration:
     def calculate_win_ratio(self):
         return 0.5
 
+    # 印をつけるセルを返す
     def select_npc_action(self, step_index, policy, state3):
         a = None
         if step_index == 0:
@@ -250,7 +260,43 @@ class MonteCarloPolicyIteration:
         if finished_state == 0:
             return 0
 
+    def select_enemy_action(self, step_index, state3):
+        # あと1つでenemy winとなるならそのセルを埋めに行く
+        fin_positions = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]]
+        for i in range(len(fin_positions)):
+            # ゲーム終了条件に関係するセルの状態のみ抽出
+            state_i = state3[fin_positions[i]]
+            print("state_i : ", state_i)
+            # val \in [0, 6]
+            val = sum(state_i)
+            # どちらも印をつけてないセルの数
+            num_of_no_action_cells = len(state_i[state_i == 0])
+            if val == 2 and num_of_no_action_cells == 1:
+                # [1, 1, 0]のようなstate_iの場合のみ、この分岐
+                # idx : 0となっている(まだ印のついていないインデックス
+                idx = state_i.index(0)
+                a = fin_positions[i][idx]
+                # この場合これ以上良い行動はないので、
+                # 決めたセルを行動として返す
+                return a
 
+        # 上のような1手詰みの状況でなければ、
+        # ランダムに手を選ぶ
+        while 1:
+            a = np.random.randint(10)
+            if state3[a] == 0:
+                # 選んだセルにまだ印がついていなければ
+                # そのセルに印をつけることに決定。
+                # 選んだセルを行動として返す
+                return a
 
 
 def main():
