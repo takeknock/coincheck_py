@@ -134,7 +134,7 @@ class MonteCarloPolicyIteration:
                         self.results[episode_index] = fin
 
                         # 今ゲームの割引報酬和(各episodeの各stepごとに格納)
-                        self.discounted_rewards = self.calculate_discounted_rewards(episode_index, step_index)
+                        self.discounted_rewards[episode_index] = self.calculate_discounted_rewards(episode_index, step_index)
                         break
             # 行動価値関数(評価関数)を生成(政策評価)
             self.Q = self.calculate_state_action_value_function()
@@ -210,8 +210,14 @@ class MonteCarloPolicyIteration:
     def is_finished(self, fin):
         return fin > 0
 
-    def calculate_discounted_rewards(self, episode_index, step_index):
-        return 0
+    def calculate_discounted_rewards(self, episode_index, last_index):
+        discounted_rewards = np.zeros(last_index)
+        discounted_rewards[last_index] = self.rewards[last_index]
+        for step_index_from_last in range(last_index - 1, -1, -1):
+            step_index_plus = step_index_from_last + 1
+            discounted_rewards[step_index_from_last] = \
+                self.options["gamma"] * discounted_rewards[step_index_plus]
+        return discounted_rewards
 
     def calculate_state_action_value_function(self):
         return 0
