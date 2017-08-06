@@ -208,7 +208,7 @@ class MonteCarloPolicyIteration:
         print("actions : ", self.actions)
 
     def is_finished(self, fin):
-        return True
+        return fin > 0
 
     def calculate_discounted_rewards(self, episode_index, step_index):
         return 0
