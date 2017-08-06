@@ -175,6 +175,8 @@ class MonteCarloPolicyIteration:
     # play 1 game
     def action_train(self, policy, step_index, state3):
         # assumption : training player move first
+
+        # まずはplayerの行動選択
         npc_action = self.select_npc_action(policy, state3)
         # 2は学習プレイヤーの行動した印
         state3[npc_action] = 2
@@ -184,9 +186,13 @@ class MonteCarloPolicyIteration:
         if reward is not None:
             return npc_action, reward, state3, checked_result
 
+        # 次にenemyの行動選択
         enemy_action = self.select_enemy_action(step_index, state3)
+        state3[enemy_action] = 1
+        checked_result = self.judge(state3)
+        reward = self.calculate_reward(checked_result)
 
-        return 0,0,0,0
+        return npc_action, reward, state3, checked_result
 
     def update(self, episode_index, step_index, state, action, reward):
         pass
