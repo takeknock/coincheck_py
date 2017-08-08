@@ -197,7 +197,7 @@ class MonteCarloPolicyIteration:
     def update(self, episode_index, step_index, state, action, reward):
         # state, action, rewardを保存
         self.states[episode_index][step_index] = state
-        self.action[episode_index][step_index] = action
+        self.actions[episode_index][step_index] = action
         self.rewards[episode_index][step_index] = reward
 
         # 出現回数の更新
@@ -220,7 +220,27 @@ class MonteCarloPolicyIteration:
         return discounted_rewards
 
     def calculate_state_action_value_function(self):
-        return 0
+        # 各状態での、各行動の価値をQに格納する。
+        # 価値を表現するルックアップテーブルを作成するイメージ。
+        # Q : state, action
+        Q = self.init_Q()
+        for episode_index in range(self.M):
+            for step_index in range(self.T):
+                this_state = self.state[episode_index][step_index]
+                # ゲームが続行しているなら、0以外の値に更新されている。
+                # 0ということは、そのepisodeではそのstepまでの間に
+                # ゲームが終了しているということ。
+                if this_state == 0:
+                    # ゲームが終了していれば、それ以降の割引報酬も0のため、
+                    # 計算打ち切り
+                    break
+                action = self.actions[episode_index][step_index]
+                Q[this_state][action] += \
+                    self.discounted_rewards[episode_index][step_index]
+        # 最後、Qを訪問回数で割っているのはなぜ？
+        # 訪問回数分、割引報酬が加算されているため、
+        # 単純に訪問回数の多いstate * actionのセルの報酬が高くなってしまうため。
+        return Q / self.visits
 
     def calculate_win_ratio(self):
         return 0.5
