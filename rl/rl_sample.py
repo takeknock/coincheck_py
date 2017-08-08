@@ -243,7 +243,7 @@ class MonteCarloPolicyIteration:
         return Q / self.visits
 
     def calculate_win_ratio(self):
-        return 0.5
+        return float(len(self.result[self.result == 2])) / float(self.episodes)
 
     # 印をつけるセルを返す
     def select_npc_action(self, step_index, policy, state3):
