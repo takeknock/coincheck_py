@@ -1,10 +1,11 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from math import floor
 import pandas as pd
 import unittest
 from numpy.random import *
 
-def encode(state3):
+def naive_encode(state3):
     """
     convert_matrix = np.array([[1,2,3,4,5,6,7,8,9],
                       [3,2,1,6,5,4,9,8,7],
@@ -23,60 +24,13 @@ def encode(state3):
     power = np.array([3**8, 3**7, 3**6, 3**5, 3**4, 3**3, 3**2, 3**1, 3**0])
     result = np.dot(state3, power)
     return result
-"""
-def montecarlo_policy_iteration(policy_iterations, episodes, options):
-"""
-"""Documentation for main function
-:settings:
-- n_states : all states as integer
-- n_actions : in each turn, player is able to choose a cell which he checks
-- step : all 3 * 3 cells are checked in 5 turn
-- q : value function table
-
-:argument
-- policy_iterations : L
-- episodes : M
-
-:return:
-policy
-
-"""
-"""
-# states table
-# each cell has 3 states.
-n_states = 3 ** 9
-# in each turn, player is able to choose a cell which he checks
-n_actions = 9
-# all 3 * 3 cells are checked in 5 turn
-steps = 5
-# initialize value function table
-q  = np.zeros((n_states, n_actions))
-print(q)
-
-
-for l in range(policy_iterations):
-    visits = np.ones((n_states, n_actions))
-    results = np.zeros((episodes, 1))
-    #np.rand()
-
-    # for each episode
-    for episode in range(episodes):
-        state3 = np.zeros((1, n_actions))
-        for step in range(steps):
-            state = encode(state3)
-            policy = np.zeros(1, n_actions)
-            if (options['mode'] == 0):
-                q = Q[state]
-
-    pass
-"""
 
 class MonteCarloPolicyIteration:
     n_states = 3**9
     n_actions = 9 #行動数(最大9箇所)
     steps = 5 # 1 episode(ゲーム)あたりのターン数(敵味方合計)
 
-    visits = None # ？？
+    visits = None # 訪問回数。割引報酬和の標準化に使用される
     states = None
     actions = None
     rewards = None
@@ -84,14 +38,17 @@ class MonteCarloPolicyIteration:
     results = None
     rates = []
 
-    convert_matrix = np.array([[1,2,3,4,5,6,7,8,9],
-                      [3,2,1,6,5,4,9,8,7],
-                      [7,4,1,8,5,2,9,6,3],
-                      [1,4,7,2,5,8,3,6,9],
-                      [9,8,7,6,5,4,3,2,1],
-                      [7,8,9,4,5,6,1,2,3],
-                      [3,6,9,2,5,8,1,4,7],
-                      [9,6,3,8,5,2,7,4,1]])
+    # 盤面を回転させると同じ状態になる
+    # その変換を行い状態数を減らす
+    convert = [[0,1,2,3,4,5,6,7,8], # 元の状態
+               [2,1,0,5,4,3,8,7,6], # 変換(2)
+               [6,3,0,7,4,1,8,5,2], # 変換(3)
+               [0,3,8,1,4,7,2,5,8], # 変換(4)
+               [8,7,6,5,4,3,2,1,0], # 変換(5)
+               [6,7,8,3,4,5,0,1,2], # 変換(6)
+               [2,5,8,1,4,7,0,3,6], # 変換(7)
+               [8,5,2,7,4,1,6,3,0]  # 変換(8)
+               ]
 
     power = np.array([3**i for i in range(8, -1, -1)], dtype=np.float64)
 
@@ -100,7 +57,7 @@ class MonteCarloPolicyIteration:
         self.episodes = episodes
         self.Q = self.init_Q()
         self.options = options
-        np.random.seed(100)
+        np.random.seed(555)
 
     def init_Q(self):
         return np.zeros((self.n_states, self.n_actions)) # row 7, p56
@@ -118,7 +75,9 @@ class MonteCarloPolicyIteration:
                 state3 = self.init_state3()
 
                 for step_index in range(self.steps):
-                    state = encode(state3)
+                    # state3には、このゲームでの状態が引き継がれる
+                    state = naive_encode(state3)
+                    #state = self.encode(state3)
                     policy = self.generate_policy()
                     # ここまでの政策反復で得たQ関数を用いて政策改善
                     # 政策改善はあるQ関数の下では同じQ関数(評価関数)を
@@ -140,6 +99,7 @@ class MonteCarloPolicyIteration:
             # 行動価値関数(評価関数)を生成(政策評価)
             self.Q = self.calculate_state_action_value_function()
             self.output_results(policy_index)
+            #print("Q state value function : ", self.Q)
             self.rates.append(self.calculate_win_ratio())
 
     def init_visits(self):
@@ -281,14 +241,14 @@ class MonteCarloPolicyIteration:
         #    for i in position:
         for i in range(len(fin_positions)):
             state_i = state3[fin_positions[i]]
-            val_npc = sum(state_i == 1)
-            val_enemy = sum(state_i == 2)
+            val_npc = sum(state_i == 2)
+            val_enemy = sum(state_i == 1)
             if val_npc == 3:
                 # win player
-                return 1
+                return 2
             if val_enemy == 3:
                 # win enemy
-                return 2
+                return 1
         is_actioned_all_cell = sum(state3 == 0) == 0
         if (is_actioned_all_cell):
             # tie
@@ -298,9 +258,9 @@ class MonteCarloPolicyIteration:
 
     def calculate_reward(self, finished_state):
         # assumption: finished_state is contained in {0, 1, 2, 3} space
-        if finished_state == 1:
-            return 10
         if finished_state == 2:
+            return 10
+        if finished_state == 1:
             return -10
         if finished_state == 3:
             return None
@@ -308,6 +268,33 @@ class MonteCarloPolicyIteration:
             return 0
 
     def select_enemy_action(self, step_index, state3):
+        """
+        reach = 0
+        pos = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [1, 5, 8], [0, 4, 8], [2, 4, 6]]
+        a = None
+        for i in range(len(pos)):
+            # print("state3 : ", state3)
+            # print("pos[i] : ", pos[i])
+            # print("state3[pos[i]] : ", state3[pos[i]])
+            state_i = state3[pos[i]]
+            # print("state_i : ", state_i)
+            val = sum(state_i)
+            # print("val : ", val)
+            num = len(state_i[state_i == 0])
+            if val == 2 and num == 1:
+                # print("state_i == 0 : ", state_i == 0)
+                # print("state_i[state_i==0] : ", state_i[state_i == 0])
+                idx = int(state_i[state_i == 0][0])
+                # print("idx : ", idx)
+                a = pos[i][idx]
+                reach = 1
+                break
+        if reach == 0:
+            while 1:
+                a = floor(np.random.rand() * 8) + 1
+                if state3[a] == 0: break
+        return a
+        """
         # あと1つでenemy winとなるならそのセルを埋めに行く
         fin_positions = [
             [0, 1, 2],
@@ -351,10 +338,17 @@ class MonteCarloPolicyIteration:
                 len(self.results[self.results == 3]), self.episodes, \
                 len(self.results[self.results == 1]), self.episodes))
 
+    def encode(self, state3):
+        # stateに(2)～(8)の8種類の変換を加えた後、10進数へ変換
+        cands = [ sum(state3[self.convert[i]]*self.power) # indexを入れ替えて、10進数に変換
+                    for i in range(len(self.convert))]
+        # 8個の候補のうち一番小さいものを選ぶ
+        return min(cands)+1
+
 def main():
     ################# arguments #################
     # L
-    policy_iterations = 100
+    policy_iterations = 10000
     # M
     episodes = 100
 
@@ -372,7 +366,7 @@ class test_encode(unittest.TestCase):
     def test_encode_3_to_10(self):
         test_input = np.array([1, 0, 0, 0, 0, 0, 0, 0, 2])
         expected = 6563
-        self.assertAlmostEqual(expected, encode(test_input), delta=10e-12)
+        self.assertAlmostEqual(expected, naive_encode(test_input), delta=10e-12)
 
 if __name__ == '__main__':
     main()
