@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 import pandas as pd
 import unittest
 from numpy.random import *
@@ -73,7 +74,7 @@ for l in range(policy_iterations):
 class MonteCarloPolicyIteration:
     n_states = 3**9
     n_actions = 9 #行動数(最大9箇所)
-    T = 5 # 1 episode(ゲーム)あたりのターン数(敵味方合計)
+    steps = 5 # 1 episode(ゲーム)あたりのターン数(敵味方合計)
 
     visits = None # ？？
     states = None
@@ -138,15 +139,19 @@ class MonteCarloPolicyIteration:
                         break
             # 行動価値関数(評価関数)を生成(政策評価)
             self.Q = self.calculate_state_action_value_function()
+            self.output_results(policy_index)
             self.rates.append(self.calculate_win_ratio())
 
     def init_visits(self):
-        return np.ones(self.n_states,self.n_actions)
+        return np.ones((self.n_states,self.n_actions))
 
     def init_matrix(self):
-        return np.ones(self.episodes, self.steps)
+        return np.ones((self.episodes, self.steps))
 
     def init_return(self):
+        return np.zeros(self.episodes)
+
+    def init_results(self):
         return np.zeros(self.episodes)
 
     def init_state3(self):
@@ -177,7 +182,7 @@ class MonteCarloPolicyIteration:
         # assumption : training player move first
 
         # まずはplayerの行動選択
-        npc_action = self.select_npc_action(policy, state3)
+        npc_action = self.select_npc_action(step_index, policy, state3)
         # 2は学習プレイヤーの行動した印
         state3[npc_action] = 2
         checked_result = self.judge(state3)
@@ -204,15 +209,15 @@ class MonteCarloPolicyIteration:
         self.visits[state][action] += 1
 
         # 更新後のaction一覧を表示
-        print("episode : ", episode_index, "step : ", step_index)
-        print("actions : ", self.actions)
+        #print("episode : ", episode_index, "step : ", step_index)
+        #print("actions : ", self.actions)
 
     def is_finished(self, fin):
         return fin > 0
 
     def calculate_discounted_rewards(self, episode_index, last_index):
-        discounted_rewards = np.zeros(last_index)
-        discounted_rewards[last_index] = self.rewards[last_index]
+        discounted_rewards = np.zeros(self.steps)
+        discounted_rewards[last_index] = self.rewards[episode_index][last_index]
         for step_index_from_last in range(last_index - 1, -1, -1):
             step_index_plus = step_index_from_last + 1
             discounted_rewards[step_index_from_last] = \
@@ -224,9 +229,9 @@ class MonteCarloPolicyIteration:
         # 価値を表現するルックアップテーブルを作成するイメージ。
         # Q : state, action
         Q = self.init_Q()
-        for episode_index in range(self.M):
-            for step_index in range(self.T):
-                this_state = self.state[episode_index][step_index]
+        for episode_index in range(self.episodes):
+            for step_index in range(self.steps):
+                this_state = self.states[episode_index][step_index]
                 # ゲームが続行しているなら、0以外の値に更新されている。
                 # 0ということは、そのepisodeではそのstepまでの間に
                 # ゲームが終了しているということ。
@@ -243,7 +248,7 @@ class MonteCarloPolicyIteration:
         return Q / self.visits
 
     def calculate_win_ratio(self):
-        return float(len(self.result[self.result == 2])) / float(self.episodes)
+        return float(len(self.results[self.results == 2])) / float(self.episodes)
 
     # 印をつけるセルを返す
     def select_npc_action(self, step_index, policy, state3):
@@ -340,20 +345,28 @@ class MonteCarloPolicyIteration:
                 # 選んだセルを行動として返す
                 return a
 
+    def output_results(self, l):
+        print('l=%d: Win=%d/%d, Draw=%d/%d, Lose=%d/%d\n' % (l, \
+                len(self.results[self.results == 2]), self.episodes, \
+                len(self.results[self.results == 3]), self.episodes, \
+                len(self.results[self.results == 1]), self.episodes))
 
 def main():
     ################# arguments #################
     # L
-    policy_iterations = 10
+    policy_iterations = 100
     # M
-    episodes = 10
+    episodes = 100
 
-    options = {'gamma': 0.9, 'tau': 0.3, 'epsilon' : 0.2, 'pmode' : 1}
+    options = {"gamma": 0.9, "tau": 2, "epsilon": 0.05, "pmode": 1}
 
     #action = montecarlo_policy_iteration(policy_iterations, episodes, options)
     #print(action)
     mcpi = MonteCarloPolicyIteration(policy_iterations, episodes, options)
     mcpi.train()
+    plt.plot(range(len(mcpi.rates)), mcpi.rates)
+    plt.show()
+
 
 class test_encode(unittest.TestCase):
     def test_encode_3_to_10(self):
